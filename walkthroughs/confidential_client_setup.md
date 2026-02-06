@@ -142,3 +142,28 @@ You have now:
 
 Your Globus setup is now ready for **HPC-scale, automated data movement** 
 
+
+## Tips
+**How do I check transfer statuses on transfers initiated by a confidential client?**
+
+It can be hard to tell when a transfer has completed with a confidential client becasue it does not show up in the "Transfers" page on Globus. To check the statuses, you'll need the client ID and client secret for your confidential client and you'll need to install the Globus command line interface (CLI). 
+
+`pip install globus-cli`
+
+Then, in a terminal:
+
+`export GLOBUS_CLI_CLIENT_ID="<uuid>"`
+
+`export GLOBUS_CLI_CLIENT_SECRET="<secret>"`
+
+To see the list of transfers associated with your confidential client:
+
+`globus task list`
+
+To see a specific task: 
+
+`globus task show <task ID>`
+
+To cancel a task:
+
+`globus task cancel <task ID>`
