@@ -1,0 +1,31 @@
+Set up the start in for the folder with the .env and scripts. 
+
+To create the env file:
+1. open a notepad
+2. add the Globus client secret
+    GLOBUS_CLIENT_SECRET=secret
+3. Click File > Save as...
+4. Navigate to file path with the scripts. 
+5. At the bottom of the file window, change "Save as type" dropdown to "All files"
+6. In file name, type .env and save 
+
+
+Task Scheduler 
+
+1. Open task scheduler and click "Create task" 
+2. Security options: Run whether user is logged in or not and run with highest priviliges 
+3. Triggers tab:
+    - Select new
+    - Begin task on a schedule 
+    - Daily 
+    - Recur every 1 day 
+4. Actions tab
+    - Start a program 
+    - Find script 
+    - Start in the path without the trailing slash: C:\nucleus_backup\nightly
+5. Conditions 
+    - Under power, select "Wake this computer to run the task 
+6. Settings 
+    - Select allow task to be ran on deband 
+    - stop task if it runs longer than 12 hours so it doesn't overlap
+    - if task is already running, leave the drop down set to "Do not start a new instance"
