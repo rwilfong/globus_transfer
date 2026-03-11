@@ -253,7 +253,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true", help="Scan without submitting transfer.")
     parser.add_argument("--config", default="config_widhalm.ini", help="Path to config file.")
-    parser.add_argument("--backfill", action="store_true", help="Transfer historical data from June 1, 2025 up to yesterday.")
+    parser.add_argument(
+        "--backfill", 
+        nargs='?', 
+        const='06/01/2025',  # Used if '--backfill' is passed with no date
+        default=None,        # Used if '--backfill' is omitted entirely
+        help="Transfer historical data. Provide a date (MM/DD/YYYY) or leave blank to default to 06/01/2025."
+    )
     args = parser.parse_args()
 
     logger = setup_logging()
@@ -276,17 +282,23 @@ def main():
         logger.error(f"Missing config key: {e}")
         return
 
-    yesterday    = datetime.now().date() - timedelta(days=1)
+    yesterday = datetime.now().date() - timedelta(days=1)
     
     # Determine the start window: Backfill limit vs Normal Nightly
-    if args.backfill:
-        start_window = datetime(2025, 6, 1) 
+    if args.backfill is not None:
+        try:
+            # Parse the date provided (or the default '06/01/2025')
+            start_window = datetime.strptime(args.backfill, "%m/%d/%Y")
+        except ValueError:
+            logger.error(f"Invalid date format for --backfill: '{args.backfill}'. Please use MM/DD/YYYY.")
+            return
+            
         logger.info(f"Starting historical backfill sync from {start_window.date()} up to {yesterday}")
     else:
         start_window = datetime.combine(yesterday, time.min)
         logger.info(f"Starting Nightly Sync for {yesterday}")
         
-    end_window   = datetime.combine(yesterday, time.max)
+    end_window = datetime.combine(yesterday, time.max)
 
     # Scan phase
     valid_dirs = scan_for_directories(SOURCE_ROOTS, start_window, end_window, logger)
