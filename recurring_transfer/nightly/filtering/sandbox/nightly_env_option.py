@@ -29,16 +29,16 @@ class LockFile:
                 with open(self.path, 'r') as f:
                     old_pid = int(f.read().strip())
                 
-                # os.kill with signal 0 checks if the process is currently running.
+                # os.kill with signal 0 checks if the process is currently running
                 os.kill(old_pid, 0)
                 
-                # If we get here, the process is still alive. Do not run.
+                # If we get here, the process is still alive. Do not run!
                 raise RuntimeError(f"Another instance is currently running (PID {old_pid}). Exiting.")
             
             except (ValueError, OSError):
-                # OSError (ProcessLookupError) means the PID is dead.
-                # ValueError means the file was empty or corrupted.
-                # In either case, the lock is stale and safe to remove.
+                # OSError (ProcessLookupError) means the PID is dead
+                # ValueError means the file was empty or corrupted
+                # In either case, the lock is stale and safe to remove
                 os.remove(self.path)
 
         # Create a new lockfile with our current PID
@@ -55,7 +55,6 @@ class LockFile:
             except OSError:
                 pass
 
-
 def setup_logging():
     """
     Sets up logging to print to the console and save to a file
@@ -66,7 +65,6 @@ def setup_logging():
         handlers=[logging.StreamHandler(), logging.FileHandler('nightly_sync.log')]
     )
     return logging.getLogger(__name__)
-
 
 def get_authorizer(client_id):
     """
@@ -84,7 +82,6 @@ def get_authorizer(client_id):
     scopes = "urn:globus:auth:scope:transfer.api.globus.org:all"
     return globus_sdk.ClientCredentialsAuthorizer(client, scopes=scopes)
 
-
 def log_task_id(task_id, description, logger):
     """
     Saves the Globus Task IDs to a separate file for easy tracking and auditing
@@ -94,12 +91,11 @@ def log_task_id(task_id, description, logger):
         f.write(entry)
     logger.info(f"[{description}] Task ID logged: {task_id}")
 
-
 # Prepare file system and tar utilities 
 def get_latest_mtime(dir_path):
     """
-    Finds the most recent modification time among a directory and its contents.
-    Agilent '.d' files are actually directories that contain relevant metadata for each sample. 
+    Finds the most recent modification time among a directory and its contents
+    Agilent '.d' files are actually directories that contain relevant metadata for each sample
     """
     max_mtime = os.path.getmtime(dir_path)
     for root, _, files in os.walk(dir_path):
@@ -109,9 +105,8 @@ def get_latest_mtime(dir_path):
                 if mtime > max_mtime:
                     max_mtime = mtime
             except OSError:
-                continue # Skip files we can't access due to permissions, etc.
+                continue # Skip files we can't access due to permissions, etc
     return max_mtime
-
 
 def make_tarfile(output_filename, source_dir):
     """
@@ -120,7 +115,6 @@ def make_tarfile(output_filename, source_dir):
     with tarfile.open(output_filename, "w") as tar:
         # arcname ensures we don't tar the entire absolute path, just the folder name
         tar.add(source_dir, arcname=os.path.basename(source_dir))
-
 
 def cleanup_old_tarballs(staging_dir, days_old=7):
     """
@@ -138,7 +132,6 @@ def cleanup_old_tarballs(staging_dir, days_old=7):
                     os.remove(file_path)
             except OSError:
                 pass
-
 
 # Scan the directory and build the transfer 
 def scan_for_directories(source_roots, start_window, end_window, logger):
@@ -185,11 +178,10 @@ def scan_for_directories(source_roots, start_window, end_window, logger):
             
     return valid_dirs
 
-
 def build_transfers(valid_dirs, config, logger, dry_run):
     """
     Takes the list of valid directories and sorts them into 3 Globus TransferData objects:
-    1. General Raw (everything)
+    1. General Raw (everything) - Dynamically sorts into MM_YYYY folders
     2. Project Raw (only data matching the project keyword)
     3. Project Tape (tarred project data for archive)
     """
@@ -212,25 +204,32 @@ def build_transfers(valid_dirs, config, logger, dry_run):
     STAGING_DIR     = config['paths']['LOCAL_TAR_STAGING']
     GLOBUS_STAGING  = config['paths']['GLOBUS_TAR_STAGING']
 
+    # Calculate MM_YYYY based on the data's date (yesterday)
+    yesterday = datetime.now().date() - timedelta(days=1)
+    month_year_folder = yesterday.strftime("%m_%Y") # e.g., "03_2026"
+
     # Initialize the globus transferData object
     t_general = globus_sdk.TransferData(
         source_endpoint=SOURCE_EP, 
         destination_endpoint=GEN_DEST_EP,
-        label=f"All_Raw_{datetime.now().date()}", 
+        label=f"All_Raw_{yesterday}", 
+        preserve_timestamp=True,
         verify_checksum=True
     )
     
     t_project_raw = globus_sdk.TransferData(
         source_endpoint=SOURCE_EP, 
         destination_endpoint=PROJ_DEST_EP,
-        label=f"Project_{PROJECT_KEYWORD}_Raw_{datetime.now().date()}", 
+        label=f"Project_{PROJECT_KEYWORD}_Raw_{yesterday}", 
+        preserve_timestamp=True,
         verify_checksum=True
     )
 
     t_project_tape = globus_sdk.TransferData(
         source_endpoint=SOURCE_EP, 
         destination_endpoint=TAPE_EP,
-        label=f"Project_{PROJECT_KEYWORD}_Tape_{datetime.now().date()}", 
+        label=f"Project_{PROJECT_KEYWORD}_Tape_{yesterday}", 
+        preserve_timestamp=True,
         verify_checksum=True
     )
 
@@ -248,16 +247,16 @@ def build_transfers(valid_dirs, config, logger, dry_run):
         # Globus always uses forward slashes
         rel_path_posix = rel_path.replace(os.sep, '/')
         g_source_path = posixpath.join(GLOBUS_SRC_BASE, rel_path_posix)
-
-        # General Bucket
-        g_dest_general = posixpath.join(GEN_DEST_ROOT, rel_path_posix)
+        # General transfer bucket
+        # Inserts the MM_YYYY folder between the destination root and the file path
+        g_dest_general = posixpath.join(GEN_DEST_ROOT, month_year_folder, rel_path_posix)
         if dry_run:
             logger.info(f"[DRY RUN] General: {rel_path} -> {g_dest_general}")
         else:
             t_general.add_item(g_source_path, g_dest_general, recursive=True)
         counts['general'] += 1
 
-        # Project Buckets
+        # Project transfer buckets
         if PROJECT_KEYWORD in full_path.lower():
             
             # Project Raw
@@ -284,7 +283,6 @@ def build_transfers(valid_dirs, config, logger, dry_run):
             counts['project_tape'] += 1
 
     return (t_general, t_project_raw, t_project_tape), counts
-
 
 def main():
     # Grab lock to prevent concurrent runs
