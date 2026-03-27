@@ -29,3 +29,22 @@ Task Scheduler
     - Select allow task to be ran on deband 
     - stop task if it runs longer than 12 hours so it doesn't overlap
     - if task is already running, leave the drop down set to "Do not start a new instance"
+
+
+
+
+# Running the safer_sync.bat 
+1. Security Options 
+    - Click "Change User or group..." and enter the Windows username for the globus and conda installation
+        - Click "Check Names" to verify it 
+    - Select "Run whether user is logged on or not" 
+    - Check "run with highest priviliges" 
+2. Triggers Tab 
+    - Click "new"
+    - Begin the task and set it for daily at 2am
+3. Actions tab 
+    - Click "New.."
+    - Program/script: Click Browse and select the .bat file 
+    - Start in "C:\nucleus_backup\filtering"
+
+    
