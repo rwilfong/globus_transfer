@@ -40,40 +40,47 @@ call :LOG "Checking if Globus Connect Personal is running..."
 tasklist /FI "IMAGENAME eq GlobusConnectPersonal.exe" 2>NUL | find /I "GlobusConnectPersonal.exe" >NUL 2>&1
 if %ERRORLEVEL% EQU 0 (
     call :LOG "Globus is already running."
-) else (
-    call :LOG "Globus is not running. Attempting to start..."
-
-    if not exist "%GLOBUS_PATH%" (
-        call :LOG "ERROR: Globus executable not found at: %GLOBUS_PATH%"
-        call :LOG "Aborting."
-        goto :END
-    )
-
-    start "" "%GLOBUS_PATH%" -start
-    call :LOG "Globus launched. Waiting for it to become ready..."
-
-    REM Loop-wait instead of a blind sleep
-    set /a WAITED=0
-    :GLOBUS_WAIT_LOOP
-        timeout /t 5 /nobreak >NUL
-        set /a WAITED+=5
-        tasklist /FI "IMAGENAME eq GlobusConnectPersonal.exe" 2>NUL | find /I "GlobusConnectPersonal.exe" >NUL 2>&1
-        if %ERRORLEVEL% EQU 0 (
-            call :LOG "Globus is now running after !WAITED! seconds."
-            goto :GLOBUS_READY
-        )
-        if !WAITED! GEQ %GLOBUS_WAIT_MAX% (
-            call :LOG "ERROR: Globus did not start within %GLOBUS_WAIT_MAX% seconds. Aborting."
-            goto :END
-        )
-    goto :GLOBUS_WAIT_LOOP
-    :GLOBUS_READY
-
-    REM Extra settle time for the endpoint to authenticate
-    call :LOG "Giving Globus 10 more seconds to authenticate endpoint..."
-    timeout /t 10 /nobreak >NUL
+    goto :GLOBUS_READY
 )
 
+REM If we reach here, Globus is NOT running
+call :LOG "Globus is not running. Attempting to start..."
+
+if not exist "%GLOBUS_PATH%" (
+    call :LOG "ERROR: Globus executable not found at: %GLOBUS_PATH%"
+    call :LOG "Aborting."
+    goto :END
+)
+
+start "" "%GLOBUS_PATH%" -start
+call :LOG "Globus launched. Waiting for it to become ready..."
+
+REM Loop-wait instead of a blind sleep
+set /a WAITED=0
+
+:GLOBUS_WAIT_LOOP
+timeout /t 5 /nobreak >NUL
+set /a WAITED+=5
+tasklist /FI "IMAGENAME eq GlobusConnectPersonal.exe" 2>NUL | find /I "GlobusConnectPersonal.exe" >NUL 2>&1
+
+REM We can safely use %ERRORLEVEL% here because we are outside a parenthesized block
+if %ERRORLEVEL% EQU 0 (
+    call :LOG "Globus is now running after !WAITED! seconds."
+    goto :GLOBUS_READY_DELAY
+)
+
+if !WAITED! GEQ %GLOBUS_WAIT_MAX% (
+    call :LOG "ERROR: Globus did not start within %GLOBUS_WAIT_MAX% seconds. Aborting."
+    goto :END
+)
+goto :GLOBUS_WAIT_LOOP
+
+:GLOBUS_READY_DELAY
+REM Extra settle time for the endpoint to authenticate (Only happens if we had to start it)
+call :LOG "Giving Globus 10 more seconds to authenticate endpoint..."
+timeout /t 10 /nobreak >NUL
+
+:GLOBUS_READY
 REM Step 2: Run Python directly from the Conda environment
 call :LOG "Running Python script via absolute environment path..."
 
@@ -95,7 +102,8 @@ REM Call the script directly using the environment's Python
 call :LOG "Changing to working directory..."
 cd /d "C:\nucleus_backup\filtering"
 
-python "%PYTHON_SCRIPT%" --config "%CONFIG_FILE%" >> "%LOG_FILE%" 2>&1
+REM FIXED: Using %ENV_PYTHON% here instead of the generic python command
+"%ENV_PYTHON%" "%PYTHON_SCRIPT%" --config "%CONFIG_FILE%" >> "%LOG_FILE%" 2>&1
 
 set PYTHON_EXIT=%ERRORLEVEL%
 
@@ -106,10 +114,8 @@ if %PYTHON_EXIT% EQU 0 (
 )
 
 :END
-
 call :LOG "Nightly Catchup finished."
 call :LOG "========================================"
-endlocal
 exit /b %PYTHON_EXIT%
 
 REM Logging subroutine 
