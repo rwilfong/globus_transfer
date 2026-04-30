@@ -6,6 +6,7 @@ For automation, Globus confidential clients are recommended. Globus provides a [
 
 It's called a confidential client because there's a secret associated with the client ID (a UUID Globus assigns to each application). The secret can be hidden in a .env file, saved in a keyring, or if needed, hardcoded into a script for quick tests. This allows users to run things headlessly whereas a Globus native client requires manual input to confirm access. This means there are a few extra steps involved, but once it's set up, you're good to go.  
 
+Ideally, this repository will be useful for folks at Purdue and beyond to implement Globus workflows to automate data transfer and facilitation. 
  
 ## Scripts
 There are a few methods that can be used for retaining secrets. The main ones I've experimented with are Python's `keyring` library and a `.env` file.
