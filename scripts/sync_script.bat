@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableDelayedExpansion
 
-REM Trying to figure out how to make a robust backup script. 
+REM Trying to figure out how to make a robust backup script
 REM Occasionally GCP stops working on the computers 
 
 REM ============================================================
