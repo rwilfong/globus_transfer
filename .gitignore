@@ -1,0 +1,27 @@
+# Python specific compiled files 
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environemnts 
+.venv/
+venv/
+env/
+ENV/
+
+# Security and credentials
+.env
+.env.*
+*.key
+
+# Logs and outputs 
+*.log
+*.sqlite
+*.db
+
+# OS & IDE Specific
+.DS_Store
+
+# Editor directories
+.vscode/
+.idea/
