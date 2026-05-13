@@ -1,20 +1,100 @@
-# Globus Transfers
+# globus-workflow-toolkit
 
-Directory dedicated to production scripts for facilitating Globus Transfers that are available to the wider Purdue community. There are a handful of scripts and several walkthroughs. 
+A collection of production scripts, workflows, and tutorials for implementing and automating [Globus](https://www.globus.org/) data transfers. Built for researchers and research computing staff at Purdue and beyond.
 
-For automation, Globus confidential clients are recommended. Globus provides a [Developer Guide](https://docs.globus.org/api/auth/developer-guide/) that describes how to develop apps and services using Globus Auth. Globus does a good job at explaining all of the options, but the main one that I'll cover in this repo is the confidential client. 
+---
 
-It's called a confidential client because there's a secret associated with the client ID (a UUID Globus assigns to each application). The secret can be hidden in a .env file, saved in a keyring, or if needed, hardcoded into a script for quick tests. This allows users to run things headlessly whereas a Globus native client requires manual input to confirm access. This means there are a few extra steps involved, but once it's set up, you're good to go.  
+## Overview
 
-Ideally, this repository will be useful for folks at Purdue and beyond to implement Globus workflows to automate data transfer and facilitation. 
- 
-## Scripts
-There are a few methods that can be used for retaining secrets. The main ones I've experimented with are Python's `keyring` library and a `.env` file.
+This repository is designed to lower the barrier to adopting Globus for automated, reliable data management. It covers the basics of headless transfers using confidential clients, domain-specific workflow examples, and walkthroughs for setting up Globus features including guest collections, Flows, the CLI, and Globus Compute.
 
-The Python `keyring` library provides an easy way to store and retrieve passwords securely. The `keyring` library relies on your operating system's native credential manager (like Windows Credential Locker, macOS Keychain, or Linux Secret Service). These managers are designed to encrypt your secrets and automatically decrypt them.
+---
 
-The `.env` file is less secure, but can be broken down to prevent other users from reading it. A `.env` file can be better when the program is scheduled on a task scheduler (or cron job) because this job usually starts in a background, non-interactive state. Most of the computers I'm running on are Windows. These Window devices start Session 0, a headless state where the OS credential manager is typicaly locked. The `.env` file lives where the script is executed and it removes a potential point of failure when automating Globus scripts.
+## Repository Structure
 
+```
+globus-workflow-toolkit/
+├── core/          # Foundational transfer scripts
+├── tutorials/     # Markdown walkthroughs and setup guides
+└── workflows/     # Domain-specific workflow scripts
+```
 
-## Walkthroughs
-This repository is dedicated to walkthroughs that are useful for setting up things for a confidential client and will evolve into other user guides for using the Globus command line utility, Flows, and Globus Compute. 
+### `core/`
+Foundational scripts for common transfer patterns. Includes examples like simple transfers with a lookback window - useful as a starting point for building more complex automation.
+
+### `tutorials/`
+Step-by-step guides covering Globus setup and features:
+- Setting up guest collections
+- Globus CLI usage
+- Flows
+- Globus Compute
+- *(More to come)*
+
+### `workflows/`
+Domain-specific workflow scripts built on top of the core transfer logic. Currently includes:
+- **Metabolomics** - scans for `.d` folders and automates their transfer
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.8+
+- [`globus-sdk`](https://globus-sdk-python.readthedocs.io/en/stable/)
+- A Globus account and, for automation, a **confidential client** (see below)
+
+### Installation
+
+```bash
+git clone https://github.com/rwilfong/globus-workflow-toolkit.git
+cd globus-workflow-toolkit
+pip install globus-sdk python-dotenv
+```
+
+---
+
+## Confidential Clients
+
+For automation, Globus confidential clients are strongly recommended over native clients. A native client requires manual input to confirm access, which makes headless or scheduled execution impossible. A confidential client uses a secret tied to a client ID (a UUID Globus assigns to your application), allowing scripts to authenticate and run without user interaction.
+
+The Globus [Developer Guide](https://docs.globus.org/api/auth/developer-guide/) covers the full range of application types. This repository focuses on the confidential client pattern.
+
+### Storing Secrets
+
+There are two main approaches used in this repository:
+
+**`.env` file**
+
+An `.env` file stores your credentials alongside the script. This is the recommended approach for scheduled tasks (cron jobs, Windows Task Scheduler) because these jobs typically run in a headless, non-interactive state. On Windows, this is Session 0 - a background state where the OS credential manager is usually locked, making keyring-based approaches unreliable.
+
+```
+CLIENT_ID=your-client-id
+CLIENT_SECRET=your-client-secret
+```
+
+> Never commit your `.env` file. Add it to `.gitignore` and use the provided `.env.example` as a template.
+
+**Python `keyring` library**
+The [`keyring`](https://pypi.org/project/keyring/) library stores secrets in your operating system's native credential manager (Windows Credential Locker, macOS Keychain, Linux Secret Service). These are encrypted at rest and a good option for interactive use on a personal or shared workstation.
+
+---
+
+## Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on adding scripts, tutorials, or domain workflows.
+
+---
+
+## About
+
+Developed by Purdue University's Rosen Center for Advanced Computing (RCAC). The goal of this repository is to provide researchers and research computing staff with practical, reusable tooling for standardizing data transfer and management workflows using Globus.
+
+---
+
+## Resources
+
+- [Globus Documentation](https://docs.globus.org/)
+- [Globus SDK for Python](https://globus-sdk-python.readthedocs.io/en/stable/)
+- [Globus Developer Guide](https://docs.globus.org/api/auth/developer-guide/)
+- [Purdue RCAC](https://www.rcac.purdue.edu/)
